@@ -103,11 +103,7 @@ void my_setup() {
 
 
 void my_loop() {
-//  if(timeElapsed()){
-//    //Serial.print('.');
-//    loopDHT();
-//  }
-//	Server.handleClient();
+	// Nothing To Do yet
 }
 
 
