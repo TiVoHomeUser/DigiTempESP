@@ -1,3 +1,3 @@
 # DigiTempESP
  Root Page 
-![Root Page](./DigiTempESP.png)
+![Root Page](./DiGiTempESP.png)
