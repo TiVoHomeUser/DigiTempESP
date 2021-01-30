@@ -9,7 +9,7 @@ After setting up the first ESP8266 + DHT22 temperature sensor I built a second f
 
 I broke the digitemp.ino sketch into several smaller and easier to manage files I found using the .h extension allows editing using the Arduino IDE with the syntax checking and highlighting they are not actual ’C’ header files.
  
-DigiTempESP.ino	Arduino sketch launching point
-DigiTempESP.h	Common related to both Host and Client
-DitiTempServer.h	Functions for the Host 
-DigiTempClien.h	Functions for the Client
+ - DigiTempESP.ino	Arduino sketch launching point
+ - DigiTempESP.h	Common related to both Host and Client
+ - DitiTempServer.h	Functions for the Host 
+ - DigiTempClien.h	Functions for the Client
