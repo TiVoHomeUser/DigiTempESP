@@ -37,6 +37,10 @@ Serial.println(password);
 	  Serial.println(ssid);
 	  Serial.print(F("IP address: "));
 	  Serial.println(WiFi.localIP());
+    Serial.print(F("Soft IP address: "));
+    Serial.println(WiFi.softAPIP().toString());
+    Serial.print(F("GateWay IP address: "));
+    Serial.println(WiFi.gatewayIP().toString());
 }
 
 void rootPage() {

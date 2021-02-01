@@ -54,7 +54,8 @@ void setupSerial(){
 #include <DHT.h>
 #define DHTPIN 4     	// what digital pin the DHT22 is conected to
                      	// D4 = D2 om nodemcu D2 = D2 on D2 mini lite
-#define DHTTYPE DHT22   // there are multiple kinds of DHT sensors
+//#define DHTTYPE DHT22   // there are multiple kinds of DHT sensors
+#define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
 #if SERVER
@@ -231,11 +232,15 @@ String getData() {
   content.replace("{{UID}}", SUID);
   content.replace("{{MyIP}}", Server.client().localIP().toString()); //String(WiFi.localIP().toString()));
   content.replace("{{myHostName}}", hostName);
-  content.replace("{{DiGiTempServerIP}}", Server.client().localIP().toString()); //String(WiFi.gatewayIP().toString())); // DigiTemp Server
+  #if SERVER  // Must be a better way to find the IP of the access point WiFi softAPSSID is good except Microsoft does not always support mDNS
+  content.replace("{{DiGiTempServerIP}}", WiFi.softAPIP().toString());  
+  #else
+  content.replace("{{DiGiTempServerIP}}", WiFi.gatewayIP().toString());
+  #endif
+  //WiFi.SSID()); //Server.client().localIP().toString()); //String(WiFi.gatewayIP().toString())); // DigiTemp Server
   //content.replace("{{DiGiTempServerIP}}", WiFi.softAPSSID()); // DigiTemp Server
   Server.send(200, "text/html", content);
   Server.client().flush();
-
   if(DEBUG)
   Serial.println("getData() Called");
   Serial.println(WiFi.BSSIDstr());
@@ -246,9 +251,13 @@ String getData() {
   Serial.println(WiFi.softAPmacAddress());
   Serial.println(WiFi.softAPIP().toString());
   Serial.print(hostName); Serial.println(".local");
- Serial.println( Server.uri());
- Serial.println(Server.client().localIP().toString());
- Serial.println(Server.client().remoteIP().toString());
+  
+  Serial.println( Server.uri());
+  Serial.println(Server.client().localIP().toString());
+  Serial.println(Server.client().remoteIP().toString());
+  Serial.println(Server.urlDecode(WiFi.SSID()));  //*
+  Serial.println(WiFi.gatewayIP().toString());
+
   return content;
 }
 
