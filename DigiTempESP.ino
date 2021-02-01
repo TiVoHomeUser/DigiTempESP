@@ -11,6 +11,7 @@
 #define compiledate __DATE__
 #include "Arduino.h"
 
+// To build for Host set to true set to false for Client
 #define SERVER false		// server or client
 
 
@@ -22,8 +23,8 @@ void setup(){
 	setupSerial();
 	setupBiLED();		// Built-in LED
 	setupDHT();     	//  DigiTemp setup sensor
-  Server.onNotFound(handleNotFound);
 	my_setup();			// Either server or client setup()
+	Server.onNotFound(notFoundPage);
 	Server.begin();
 }
 
@@ -32,6 +33,16 @@ void loop() {
 	if (timeElapsed()) {
 		toggleBiLED();
 		loopDHT();
+	}
+	if (Serial.available() > 0) {
+    #if SERVER
+      Serial.print("Host ");
+    #else
+      Serial.print("Client ");
+    #endif 
+		Serial.print(Serial.read());
+    Serial.print(" ");
+		Serial.println(WiFi.localIP().toString());
 	}
 	my_loop();	// either Server or Client loop()
 	Server.handleClient();

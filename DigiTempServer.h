@@ -40,19 +40,29 @@ clist clients[max_connection + 2];    // include space for AP if DHT is enabled
 
 // WiFiEventSoftAPModeStationConnected  Manage incoming device connection on ESP access point
 void onNewStation(WiFiEventSoftAPModeStationConnected sta_info) {
-  if(DEBUG) Serial.println("New Station :");
+  if(DEBUG){
+	  Serial.print("New Station : ");
+	  Serial.print(sta_info.aid);
+	  Serial.print(" ");
+  }
+
   newClient = true;
 }
 
 //WiFiEventStationModeDisconnected
 void onRemoveStation(WiFiEventSoftAPModeStationDisconnected sta_info) {
-  if(DEBUG) Serial.println("Station Removed");
+  if(DEBUG){
+	  Serial.println("Station Removed: ");
+	  Serial.print(sta_info.aid);
+	  Serial.print(" ");
+  }
   newClient = true;
 }
 
 
 
 void setupAP() {
+	Serial.println("setupAP");
   Serial.print("\n\rDigiTemp AP max "); Serial.print(max_connection); Serial.println(" WiFi connections");
   WiFi.softAP(ssid, password, channel, false, max_connection);
   IPAddress myIP = WiFi.softAPIP();
@@ -249,9 +259,7 @@ String SendHTML() {
       ptr += "/getData";
       ptr += ">";
       ptr += clients[ii].ipAddress.toString();
-//      if(0 == ii) {
-        ptr += "  {{HighLow}}  ";
-//      }
+      ptr += "  {{HighLow}}  ";
       ptr += "</a>";
       //      if(clients[ii].ipAddress ==  WiFi.softAPIP()){
       //        checkLocalStation(&clients[ii]);
@@ -259,7 +267,7 @@ String SendHTML() {
       //        checkStation(&clients[ii]);
       //      }
      if (checkStation(&clients[ii])) {
-        //      if(clients[ii].isAlive) {
+     //if(clients[ii].isAlive) {
         if (isnan(clients[ii].Th_t.f)) {
           Serial.print(clients[ii].Th_t.f); Serial.println(" tempF is not a number");
         } else {
@@ -298,6 +306,8 @@ String SendHTML() {
 void handleRoot() {
   if(DEBUG) Serial.println("Hello from handleRoot");
   Server.send(200, "text/html", SendHTML());
+	//Server.client().stop();
+  Server.client().flush();
 }
 
 
@@ -329,8 +339,9 @@ String pleaseWait() {
 void updateStations() {
   if(DEBUG) Serial.println("Hello from updateStations");
   Server.send(200, "text/html", pleaseWait());
+  Server.client().flush();
   newClient = true; //clientList();
-  handleRoot();
+  //handleRoot();
 }
 
 void setupServer() {
@@ -360,6 +371,8 @@ void  setupmDNS() {
 
 void my_setup() {
   hostName = MY_HOSTNAME;
+  Serial.print(F("Running as Host "));
+  Serial.println(hostName);
   setupAP();
   setupServer();
   setupmDNS();
@@ -369,21 +382,21 @@ void my_setup() {
         load client array with IP and reset keep isAlive boolean.
 
 */
-void initClientList() {
+void ClientList() {
   newClient = false;
   Serial.printf("New Station Number of connections : %i\n", WiFi.softAPgetStationNum());
   int ipidx = 0;
 
   // Special case for this AP enabled with DHT
   clients[ipidx].ipAddress = WiFi.softAPIP();
-  clients[ipidx].isAlive = true;  // Changed for keep alive
-  //Serial.print(ipidx); Serial.print(": "); Serial.println(clients[ipidx].ipAddress.toString());
+  clients[ipidx].isAlive = true;
+  Serial.print(ipidx); Serial.print(": "); Serial.println(clients[ipidx].ipAddress.toString());
   ipidx = ipidx +1;  // remote clients ipidx++; is not working use long-hand
   struct station_info *station_list = wifi_softap_get_station_info();
   while (station_list != NULL) {
     clients[ipidx].ipAddress = IPAddress((&station_list->ip)->addr);
     Serial.print(ipidx); Serial.print(": "); Serial.println(clients[ipidx].ipAddress.toString());
-    clients[ipidx].isAlive = true;  // Changed for keep alive
+    clients[ipidx].isAlive = true;  // Default to active until get_Data() is verified
     station_list = STAILQ_NEXT(station_list, next);
     ipidx = ipidx + 1;    // ipidx++; is not working use long-hand
   }
@@ -399,11 +412,12 @@ void my_loop() {
   MDNS.update();    // required for the mDNS lookup this is the key to making mDNS work
   // Undocumented I think update() is what responds to DNS requests
   // and needs to be called frequently
-  if (newClient) {
-	  initClientList();
-	  //newClient = false;
+  if(newClient){
+	  if(DEBUG) Serial.println("There is a new client");
+	  ClientList();
+	  newClient = false;
   }
-  //Server.handleClient();
+  //Server.handleClient();  // done in main loop for both host and client
 }
 
 

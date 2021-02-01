@@ -20,6 +20,8 @@ void setupClient(){
 	  wm.autoConnect(MYHOSTNAME"_AP"); 								// auto generated AP name from chipid
 	#else  			// Hard-coded connection
 	  WiFi.begin(ssid, password);
+Serial.println(ssid);
+Serial.println(password);
 	#endif
 
 	  Serial.println("");
@@ -84,6 +86,7 @@ void rootPage() {
   content.replace("{{myHostName}}",hostName);
 
   Server.send(200, "text/html", content);
+  Server.client().flush();
 }
 
 

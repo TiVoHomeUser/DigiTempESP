@@ -27,7 +27,7 @@ boolean DEBUG = true;	// Extra output to serial monitor
 boolean BiLED_DEBUG = false;
 
 #ifndef APSSID
-#define APSSID  "DigiTempNet"
+#define APSSID  "DigiTempESP"
 #define APPSK   "DigiTempPSK"
 #endif
 
@@ -39,10 +39,16 @@ void setupSerial(){
 	delay(1000);
 	Serial.begin(74880); //115200);
 	Serial.println("");
-	Serial.println("Copyrite "); Serial.print( copyrite );
+	Serial.println("Copyright "); Serial.print( copyrite );
 	Serial.print(" "); Serial.println(compiledate);
 	Serial.print(String(Server.uri()));
-	Serial.println("\n\rDigiTemp with Auto WiFi " + SUID);
+	Serial.print("\n\rDigiTempESP " + SUID);
+#if SERVER
+	Serial.print(" Host");
+#else
+	Serial.print(" Client");
+#endif
+	Serial.println(" Mode");
 }
 
 #include <DHT.h>
@@ -223,18 +229,40 @@ String getData() {
   content.replace("{{TempMin}}", String(tempMin));
   content.replace("{{Humid}}", String(humid));
   content.replace("{{UID}}", SUID);
-  content.replace("{{MyIP}}", String(WiFi.localIP().toString()));
+  content.replace("{{MyIP}}", Server.client().localIP().toString()); //String(WiFi.localIP().toString()));
   content.replace("{{myHostName}}", hostName);
-  content.replace("{{DiGiTempServerIP}}", String(WiFi.gatewayIP().toString())); // DigiTemp Server
+  content.replace("{{DiGiTempServerIP}}", Server.client().localIP().toString()); //String(WiFi.gatewayIP().toString())); // DigiTemp Server
+  //content.replace("{{DiGiTempServerIP}}", WiFi.softAPSSID()); // DigiTemp Server
   Server.send(200, "text/html", content);
+  Server.client().flush();
+
+  if(DEBUG)
   Serial.println("getData() Called");
+  Serial.println(WiFi.BSSIDstr());
+  Serial.println(WiFi.SSID());	//*
+  Serial.println(WiFi.hostname());
+  Serial.println(WiFi.psk());
+  Serial.println(WiFi.softAPSSID()); //**
+  Serial.println(WiFi.softAPmacAddress());
+  Serial.println(WiFi.softAPIP().toString());
+  Serial.print(hostName); Serial.println(".local");
+ Serial.println( Server.uri());
+ Serial.println(Server.client().localIP().toString());
+ Serial.println(Server.client().remoteIP().toString());
   return content;
 }
 
 void send_getData(){
 	Server.send(200, "text/html", getData());
+	//Server.client().stop();
+	Server.client().flush();
+
 }
 
+/*
+ *                          StartPage 
+ * 
+ */
 void startPage() {
   if(DEBUG) Serial.println("Hello from startPage()");
   // Retrieve the value of AutoConnectElement with arg function of WebServer class.
@@ -246,10 +274,18 @@ void startPage() {
   Server.client().stop();
 }
 
-void handleNotFound() {
+/*
+ *                    Page Not Found
+ * 
+ */
+void notFoundPage() {
+	if(DEBUG){
+		Serial.print(Server.uri());
+		Serial.println(F(" not found"));
+	}
     Server.send(404, F("text/plain"), F("404: Not found"));
+	Server.client().stop();
 }
-
 
 
 #if SERVER
@@ -260,4 +296,3 @@ void handleNotFound() {
 
 
 #endif		// DIGITEMP_H
-
