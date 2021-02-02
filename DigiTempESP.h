@@ -4,6 +4,17 @@
 #define copyrite " &#169; Jan 2021 VictorWheeler myapps@vicw.net use, modify and distribute without restrictions"
 #define compiledate __DATE__
 
+#ifndef APSSID
+#define APSSID  "DigiTempESP"
+#define APPSK   "DigiTempPSK"
+#endif
+
+#if SERVER
+#define MY_HOSTNAME "DigiTemp-AP"          // Name for this client#define MY_HOSTNAME "DigiTemp-02"          // Name for this client
+#else
+#define MY_HOSTNAME "DigiTemp-02"          // Name for this client
+#endif
+
 static const String SUID = String(ESP.getChipId());
 unsigned int suid = ESP.getChipId();
 
@@ -25,11 +36,6 @@ WebServer Server;
 
 boolean DEBUG = true;	// Extra output to serial monitor
 boolean BiLED_DEBUG = false;
-
-#ifndef APSSID
-#define APSSID  "DigiTempESP"
-#define APPSK   "DigiTempPSK"
-#endif
 
 /* Set these to your desired credentials. */
 const char *ssid = APSSID;
@@ -54,15 +60,9 @@ void setupSerial(){
 #include <DHT.h>
 #define DHTPIN 4     	// what digital pin the DHT22 is conected to
                      	// D4 = D2 om nodemcu D2 = D2 on D2 mini lite
-//#define DHTTYPE DHT22   // there are multiple kinds of DHT sensors
-#define DHTTYPE DHT11
+#define DHTTYPE DHT22   // there are multiple kinds of DHT sensors
+//#define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
-
-#if SERVER
-#define MY_HOSTNAME "DigiTemp-AP"          // Name for this client#define MY_HOSTNAME "DigiTemp-02"          // Name for this client
-#else
-#define MY_HOSTNAME "DigiTemp-02"          // Name for this client
-#endif
 
 String hostName;		// Name for Server or Client
 
@@ -232,7 +232,10 @@ String getData() {
   content.replace("{{UID}}", SUID);
   content.replace("{{MyIP}}", Server.client().localIP().toString()); //String(WiFi.localIP().toString()));
   content.replace("{{myHostName}}", hostName);
-  #if SERVER  // Must be a better way to find the IP of the access point WiFi softAPSSID is good except Microsoft does not always support mDNS
+  
+  // Must be a better way to find the IP of the access point WiFi softAPSSID is good except Microsoft does not always support mDNS
+  // Might try go-back except might of entered directly need to find host if !using AP 
+  #if SERVER
   content.replace("{{DiGiTempServerIP}}", WiFi.softAPIP().toString());  
   #else
   content.replace("{{DiGiTempServerIP}}", WiFi.gatewayIP().toString());

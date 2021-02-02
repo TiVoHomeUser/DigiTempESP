@@ -15,22 +15,22 @@
 
 void setupClient(){
 	 WiFi.mode(WIFI_STA);
-	#if AUTOCONNECT  // AutoConnect obtain credentials from web page
+	#if AUTOCONNECT                   // AutoConnect obtain credentials from web page
 	  WiFiManager wm;
-	  wm.autoConnect(MYHOSTNAME"_AP"); 								// auto generated AP name from chipid
-	#else  			// Hard-coded connection
-	  WiFi.begin(ssid, password);
+	  wm.autoConnect(MYHOSTNAME"_AP");
+	#else  			                      // Hard-coded connection
+	  WiFi.begin(ssid, password);     // auto generated AP name from chipid
 Serial.println(ssid);
 Serial.println(password);
 	#endif
 
 	  Serial.println("");
 
-
 	  // Wait for connection
 	  while (WiFi.status() != WL_CONNECTED) {
-	    delay(500);
+	    delay(250); yield();
 	    Serial.print(".");
+      delay(250); yield();
 	  }
 	  Serial.println("");
 	  Serial.print(F("Connected to "));
