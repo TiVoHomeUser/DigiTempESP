@@ -12,7 +12,7 @@
 #include "Arduino.h"
 
 // To build for Host set to true set to false for Client
-#define SERVER false		// server or client
+#define SERVER true		// server or client
 
 
 #include "DigiTempESP.h"

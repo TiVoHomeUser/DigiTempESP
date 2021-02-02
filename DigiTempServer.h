@@ -159,7 +159,7 @@ boolean checkStation(clist* addss) {
 
       // Humidity
       if(line.indexOf("404") > 0){
-        Serial.println(" ************************** 4 0 4 ********************************* ");
+        Serial.println(F(" ************************** 4 0 4 ********************************* "));
         addss->isAlive = false;
         client.stop();
         return false;
@@ -212,6 +212,7 @@ boolean checkStation(clist* addss) {
         return false;
       }
     } // else { Serial.print('.\r');} //"client.available = false");}
+    yield();
   } // while connected
   client.stop();
   return true;
@@ -422,4 +423,3 @@ void my_loop() {
 
 
 #endif		// DIGITEMPSERVER_H
-
