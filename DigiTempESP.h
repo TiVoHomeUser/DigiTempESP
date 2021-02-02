@@ -253,8 +253,7 @@ String getData() {
   Serial.println(WiFi.softAPSSID()); //**
   Serial.println(WiFi.softAPmacAddress());
   Serial.println(WiFi.softAPIP().toString());
-  Serial.print(hostName); Serial.println(".local");
-  
+  Serial.print(hostName); Serial.println(".local");  
   Serial.println( Server.uri());
   Serial.println(Server.client().localIP().toString());
   Serial.println(Server.client().remoteIP().toString());
