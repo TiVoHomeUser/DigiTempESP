@@ -15,6 +15,16 @@
 #define MY_HOSTNAME "DigiTemp-02"          // Name for this client
 #endif
 
+
+#include <DHT.h>
+#define DHTPIN 4     	// what digital pin the DHT22 is conected to
+                     	// D4 = D2 om nodemcu D2 = D2 on D2 mini lite
+#define DHTTYPE DHT22   // there are multiple kinds of DHT sensors
+//#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+String hostName;		// Name for Server or Client
+
 static const String SUID = String(ESP.getChipId());
 unsigned int suid = ESP.getChipId();
 
@@ -56,15 +66,6 @@ void setupSerial(){
 #endif
 	Serial.println(" Mode");
 }
-
-#include <DHT.h>
-#define DHTPIN 4     	// what digital pin the DHT22 is conected to
-                     	// D4 = D2 om nodemcu D2 = D2 on D2 mini lite
-#define DHTTYPE DHT22   // there are multiple kinds of DHT sensors
-//#define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);
-
-String hostName;		// Name for Server or Client
 
 // storage for temperatue and Humidity
 typedef  struct Th_temp{
