@@ -12,7 +12,7 @@
 #if SERVER
 #define MY_HOSTNAME "DigiTemp-AP"          // Name for this client#define MY_HOSTNAME "DigiTemp-02"          // Name for this client
 #else
-#define MY_HOSTNAME "DigiTemp-02"          // Name for this client
+#define MY_HOSTNAME "DigiTemp-04"          // Name for this client
 #endif
 
 
@@ -119,11 +119,9 @@ if(DEBUG && BiLED_DEBUG) Serial.flush();
  */
 static int loopCountDHT = 0;
 void loopDHT() {
-	loopCountDHT++;   // Assuming 1 second loops
-
 	// Report every 20 seconds.
-	if (loopCountDHT > 20) { //15000) { loop cycle = 1 second
-		toggleBiLED();
+	if (loopCountDHT++ > 20) { //15000) { loop cycle = 1 second
+		//toggleBiLED();
 
 		// Reading temperature or humidity takes about 250 milliseconds!
 		// Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
@@ -165,25 +163,38 @@ void loopDHT() {
 
 /*
  *
- *  instead of using delay() use the timmer for loop at 1 second stuff
+ *  instead of using delay() use the timer for loop at 1 second stuff
  *
  */
- unsigned long lastmills = 0;
- const unsigned long secondIntervill = 1000;
- // const unsigned long minuteIntervill = secondIntervill * 60;
- // const unsigned long hourIntervill = minuteIntervill * 60;
- // const unsigned long dayIntervill = hourIntervill * 24;
+ //unsigned long lastmills = 0;
+ const unsigned long secondInterval = 1000;
+ const unsigned long minuteInterval = secondInterval * 60;
+ const unsigned long hourInterval = minuteInterval * 60;
+ const unsigned long dayInterval = hourInterval * 24;
 
-unsigned long currentmills = secondIntervill;  // do it on first loop
 boolean timeElapsed(){
-  currentmills = millis();
-  if(currentmills - lastmills >= secondIntervill){
+	static unsigned long lastmills;
+	unsigned long currentmills = millis();
+  if(currentmills - lastmills >= secondInterval){
     lastmills = currentmills;
     return true;
   }
   return false;
 }
 
+//static unsigned long lastmills2;
+boolean timeElapsed(unsigned long time_Interval){
+  static unsigned long  lastmills;
+  unsigned long currentmills = millis();
+  if(currentmills - lastmills >= time_Interval){
+    lastmills = currentmills;
+    return true;
+  }
+  return false;
+}
+
+
+int still_here;		// for missed calls tell host we are still alive
 /*
 
    Basic web page to display temperature and humidity
@@ -191,7 +202,8 @@ boolean timeElapsed(){
 
 */
 String getData() {
-	if(DEBUG) Serial.println("Hello from getData()");
+	if(DEBUG){ Serial.print(F("Hello from getData() StillHere = ")); Serial.print(still_here);}
+	still_here = 0;	// Contacted reset counter
   String  content;
   content  = "<!DOCTYPE html>\n";
   content += "<html>\n";
@@ -210,7 +222,7 @@ String getData() {
   content += "Temperature_Min: {{TempMin}} <br>\n";
 
   //  content += "</p>\n";
-  content += "Hostname: {{myHostName}}<br>\n";
+  content += "Hostname: {{myHostName}}\n<br>\n";
   content += "<a href=\"http://{{DiGiTempServerIP}}/\">DigiTemp Server</a>\n";
   content += "</body>";
   content += "</html>";
