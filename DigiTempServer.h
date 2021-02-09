@@ -331,7 +331,7 @@ String SendHTML() {
     if (clients[ii].isAlive) {
       ptr += "<p>"; // if(0 != ii) ptr += "Connection: ";
       ptr += clients[ii].myHostName;
-      ptr += " ";
+      ptr += "<br>";
       ptr += "<a href=//";
       ptr += clients[ii].ipAddress.toString();
       ptr += "/getData";

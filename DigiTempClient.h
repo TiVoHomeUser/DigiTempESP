@@ -128,7 +128,11 @@ void my_loop() {
 	}
 }
 void do_serial(char r){
-  // do nothing
+  Serial.print(hostName);
+  Serial.print("\t");
+  Serial.print(WiFi.localIP().toString());
+  Serial.print("\t");
+  Serial.println(client_compiledate);
 }
 
 #endif

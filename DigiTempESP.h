@@ -12,7 +12,7 @@
 #if SERVER
 #define MY_HOSTNAME "DigiTemp-AP"          // Name for this client#define MY_HOSTNAME "DigiTemp-02"          // Name for this client
 #else
-#define MY_HOSTNAME "DigiTemp-03"          // Name for this client
+#define MY_HOSTNAME "DigiTemp-04"          // Name for this client
 #endif
 
 
