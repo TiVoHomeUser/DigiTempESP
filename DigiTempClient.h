@@ -108,10 +108,27 @@ void my_setup() {
 	Serial.println(Server.client().localIP().toString());
 }
 
-
-void my_loop() {
-	// Nothing To Do yet
+// int still_here defined and reset in getData()
+boolean still_alive(){
+	boolean retval = true;
+	if(still_here > 300){	// Number of seconds to try reconnect
+		if(DEBUG){Serial.print(F("Reseting connection to host still_here = ")); Serial.println(still_here);}
+		if(WiFi.reconnect()) {
+			still_here = 0;
+		}  else {
+			retval = false;
+		}
+	}
+	return retval;
 }
 
+void my_loop() {
+	if(!still_alive()){
+		Serial.println(F("*** Connection lost ***"));
+	}
+}
+void do_serial(char r){
+  // do nothing
+}
 
 #endif

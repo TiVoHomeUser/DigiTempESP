@@ -30,20 +30,21 @@ void setup(){
 
 
 void loop() {
-	if (timeElapsed()) {
+	if (timeElapsed()) {	// 1 Second
 		toggleBiLED();
 		loopDHT();
+		still_here++;
 	}
+
 	if (Serial.available() > 0) {
-    #if SERVER
-      Serial.print("Host ");
-    #else
-      Serial.print("Client ");
-    #endif 
-		Serial.print(Serial.read());
-    Serial.print(" ");
-		Serial.println(WiFi.localIP().toString());
-	}
+    	#if SERVER
+			Serial.print("Host ");
+    	#else
+			Serial.print("Client ");
+    	#endif
+      char r = Serial.read();
+      do_serial(r);
+	} // Serial.avaiable()
 	my_loop();	// either Server or Client loop()
 	Server.handleClient();
 }

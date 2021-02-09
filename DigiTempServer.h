@@ -10,13 +10,6 @@
 
 
 
-/*
-
-   Setup wifi as a soft Access Point
-
-*/
-
-
 const int max_connection = 8;
 const int channel = 4;
 
@@ -28,12 +21,9 @@ boolean newClient = true; // First run We are new!
 typedef struct {
   IPAddress ipAddress;
   boolean   isAlive; //validIP;
-  //Replaced in favor of containment
-  //float     humi;
-  //float     tempC;
-  //float     tempF;
   String    myHostName;
   Th_temp   Th_t;
+  unsigned long last_check;	// Last time sensor was accessed
 } clist;
 
 clist clients[max_connection + 2];    // include space for AP if DHT is enabled
@@ -60,9 +50,13 @@ void onRemoveStation(WiFiEventSoftAPModeStationDisconnected sta_info) {
 }
 
 
-
+/*
+ *
+ *  Setup wifi as a soft Access Point
+ *
+ */
 void setupAP() {
-	Serial.println("setupAP");
+  Serial.println("setupAP");
   Serial.print("\n\rDigiTemp AP max "); Serial.print(max_connection); Serial.println(" WiFi connections");
   WiFi.softAP(ssid, password, channel, false, max_connection);
   IPAddress myIP = WiFi.softAPIP();
@@ -74,11 +68,11 @@ void setupAP() {
 }
 
 /*
-
-    Find the substring "key" in the string s and return the value associated with it.
-    value is the chars following the white space after the key
-
-*/
+ *
+ *   Find the substring "key" in the string s and return the value associated with it.
+ *   value is the chars following the white space after the key
+ *
+ */
 float  parser(const String* s, const char* key) {
   float retVal = NAN;
 
@@ -104,6 +98,8 @@ float  parser(const String* s, const char* key) {
 }
 
 boolean checkLocalStation(clist* addss) {
+Serial.print(F(" checkLocalStation() "));
+ // addss->last_check = millis();
   addss->Th_t.h = Th_t.h;
   addss->Th_t.f = Th_t.f;
   addss->Th_t.c = Th_t.c;
@@ -114,9 +110,9 @@ boolean checkLocalStation(clist* addss) {
 }
 
 
-/*
- *                                                             checkStation()
- *                              verify active stations client array still exists and load them with data
+/**
+ *                                                 checkStation()
+ *                  verify active stations client array still exists and fill structure clist with data
  *
  *
  */
@@ -124,21 +120,29 @@ boolean checkLocalStation(clist* addss) {
 boolean checkStation(clist* addss) {
   //boolean checkStation(int index) {
   //  clist* addss = &clients[index];
+  //addss->isAlive = true;
+
+  addss->last_check = millis();
+
+Serial.print(" Hello from checkStation ");
   if (addss->ipAddress == WiFi.softAPIP()) {
-    return checkLocalStation(addss);    // Stop recursive call to itself when server + client configuration
+    return checkLocalStation(addss);    // local host url not working
   }
+
   String url = "/getData";
   String host = addss->ipAddress.toString();
 
   Serial.print("Connecting to ");
-  Serial.println(host + url);
+  Serial.print(host + url);
 
   WiFiClient client;
-  Serial.print("looking for 404 ");  Serial.println(client.connect(host, 80));
+  //Serial.print("looking for 404 ");  //Serial.println(client.connect(host, 80));
   if (!client.connect(host, 80)) {
-    Serial.println("Connection failed");
+    Serial.print(" Connection failed "); Serial.println(client.status());
     addss->isAlive = false;
     return false;
+  } else {
+    Serial.println();
   }
 
   client.print(String("GET ") + url + " HTTP/1.1\r\n" +
@@ -155,17 +159,19 @@ boolean checkStation(clist* addss) {
   Serial.println("Trying to read " + host + url);
   while (client.connected() || client.available()) {
     if (client.available()) {
-      String line = client.readStringUntil('\n');
 
-      // Humidity
+  	  String line = client.readStringUntil('\n');
+
       if(line.indexOf("404") > 0){
         Serial.println(F(" ************************** 4 0 4 ********************************* "));
         addss->isAlive = false;
         client.stop();
         return false;
-      }
-      if (line.indexOf("404 Not found") == -1) {
-        ptr = line.indexOf("Humidity:");    // Quick check for now need tomodify parser to return boolean and something else for the retVal
+      } else {
+//      if (line.indexOf("404 Not found") == -1) {
+
+        // Humidity
+        ptr = line.indexOf("Humidity:");    // Quick check for now need to modify parser to return boolean and something else for the retVal
         if (ptr >= 0) {
           temp = parser(&line, "Humidity:");
           addss->Th_t.h = temp;
@@ -205,12 +211,13 @@ boolean checkStation(clist* addss) {
           }
         }
 
-      } else {
-        Serial.println( " 404 found bypass");
-        addss->isAlive = false;
-        client.stop();
-        return false;
       }
+//      else {
+//        Serial.println( " 404 found bypass");
+//        addss->isAlive = false;
+//        client.stop();
+//        return false;
+//      }
     } // else { Serial.print('.\r');} //"client.available = false");}
     yield();
   } // while connected
@@ -218,9 +225,79 @@ boolean checkStation(clist* addss) {
   return true;
 }
 
+/*
+ *
+ *         load client array with IP and isAlive boolean.
+ *         reset = false do not change client's isAlive status
+ *
+ */
+void Load_Client_List(boolean reset) {
+  Serial.printf("New Station Number of connections : %i\n", WiFi.softAPgetStationNum());
+  int ipidx = 0;
+
+  // Special case for this AP enabled with DHT always stored in location 0
+  clients[ipidx].ipAddress = WiFi.softAPIP();
+  if(reset){ clients[ipidx].isAlive = true;}
+  Serial.print(ipidx); Serial.print(":\t"); Serial.println(clients[ipidx].ipAddress.toString());
+  ipidx++;  // ready for remote clients
+
+  // Add the remote clients
+  struct station_info *station_list = wifi_softap_get_station_info();
+  while (station_list != NULL) {
+    clients[ipidx].ipAddress = IPAddress((&station_list->ip)->addr);
+    Serial.print(ipidx); Serial.print(":\t"); Serial.println(clients[ipidx].ipAddress.toString());
+    if(reset){ clients[ipidx].isAlive = true;}  // Default to active until get_Data() is verified
+if(reset){ Serial.print(ipidx); Serial.println(" = TRUE");}
+    station_list = STAILQ_NEXT(station_list, next);
+    ipidx++;    // ipidx++; is not working use long-hand
+  }
+  wifi_softap_free_station_info();
+}
 
 
 
+/*
+ *
+ * 				Update remote station values
+ *
+ */
+boolean read_Client(int Station_Number){
+	boolean retVal = false;
+	Load_Client_List(false);	// Some reason the clist is not loaded on new client so update clist each call
+
+// TODO remove after debug
+Serial.print(F("Read Client ")); Serial.print(Station_Number);
+
+if (clients[Station_Number].isAlive) {
+		retVal = checkStation(&clients[Station_Number]);
+		// TODO remove after debug
+		Serial.println(F(" is Active "));
+	} else {
+
+
+// TODO remove after debug
+Serial.println(F(" is Not Alive "));
+
+	retVal = false;
+	}
+
+// TODO remove after debug
+for(int s=0; s <= max_connection; s++){
+	Serial.print(s);
+	Serial.print(F("\tHostname: ")); Serial.print(clients[s].myHostName);
+	Serial.print(F("\tIP Address: ")); Serial.print(clients[s].ipAddress);
+	Serial.print(F("\tLast read: ")); Serial.println(clients[s].last_check);
+}
+
+	return retVal;
+}
+
+/**
+ *
+ *
+ *
+ *
+ */
 String SendHTML() {
   char tempFs[6];
   char humis[5];
@@ -267,8 +344,8 @@ String SendHTML() {
       //      } else {
       //        checkStation(&clients[ii]);
       //      }
-     if (checkStation(&clients[ii])) {
-     //if(clients[ii].isAlive) {
+//     if (checkStation(&clients[ii])) {
+//     if(clients[ii].isAlive) {
         if (isnan(clients[ii].Th_t.f)) {
           Serial.print(clients[ii].Th_t.f); Serial.println(" tempF is not a number");
         } else {
@@ -285,14 +362,14 @@ String SendHTML() {
         ptr += "F ";
         ptr += humis;
         ptr += "%</a>";
-      } else {
-        ptr += "<a class=\"button button-off\" href=\"/stations\">Off Line</a>";
-        clients[ii].isAlive = false;
+        char highlow[40];
+        sprintf(highlow, "High: %02.2fF\t\tLow: %02.2fF", clients[ii].Th_t.tmax, clients[ii].Th_t.tmin);
+        ptr.replace("{{HighLow}}", String(highlow));
       }
-  char highlow[40];
-  sprintf(highlow, "High: %02.2fF\t\tLow: %02.2fF", clients[ii].Th_t.tmax, clients[ii].Th_t.tmin);
-  ptr.replace("{{HighLow}}", String(highlow));
-    }
+//      else {
+//        ptr += "<a class=\"button button-off\" href=\"/stations\">Off Line</a>";
+//        clients[ii].isAlive = false;
+//      }
   } // for WiFi.softAPgetStationNum
   ptr += "<h6>"; ptr += copyrite; ptr += " "; ptr += compiledate; ptr += "</h6>";
   ptr += "</body>\n";
@@ -379,47 +456,40 @@ void my_setup() {
   setupmDNS();
 }
 
-/*
-        load client array with IP and reset keep isAlive boolean.
-
-*/
-void ClientList() {
-  newClient = false;
-  Serial.printf("New Station Number of connections : %i\n", WiFi.softAPgetStationNum());
-  int ipidx = 0;
-
-  // Special case for this AP enabled with DHT
-  clients[ipidx].ipAddress = WiFi.softAPIP();
-  clients[ipidx].isAlive = true;
-  Serial.print(ipidx); Serial.print(": "); Serial.println(clients[ipidx].ipAddress.toString());
-  ipidx = ipidx +1;  // remote clients ipidx++; is not working use long-hand
-  struct station_info *station_list = wifi_softap_get_station_info();
-  while (station_list != NULL) {
-    clients[ipidx].ipAddress = IPAddress((&station_list->ip)->addr);
-    Serial.print(ipidx); Serial.print(": "); Serial.println(clients[ipidx].ipAddress.toString());
-    clients[ipidx].isAlive = true;  // Default to active until get_Data() is verified
-    station_list = STAILQ_NEXT(station_list, next);
-    ipidx = ipidx + 1;    // ipidx++; is not working use long-hand
-  }
-  wifi_softap_free_station_info();
-}
-
 
 /*
  *      Main loop
  *
  */
+int client_num = 0;
 void my_loop() {
   MDNS.update();    // required for the mDNS lookup this is the key to making mDNS work
-  // Undocumented I think update() is what responds to DNS requests
-  // and needs to be called frequently
+  	  	  	  	  	// Undocumented I think update() is what responds to DNS requests
+  	  	  	  	  	// and needs to be called frequently
   if(newClient){
 	  if(DEBUG) Serial.println("There is a new client");
-	  ClientList();
+	  Load_Client_List(true);
 	  newClient = false;
   }
-  //Server.handleClient();  // done in main loop for both host and client
+  if(timeElapsed(minuteInterval/4)){
+	  if(client_num > WiFi.softAPgetStationNum()) client_num = 0;
+	  read_Client(client_num++);
+  }
 }
 
+void do_serial(char r){
+    Serial.print(r);
+    if(r == '?') Load_Client_List(true);
+    Serial.print(" Num connections: "); Serial.println(WiFi.softAPgetStationNum());
+    Serial.print(" ");
+    Serial.println(WiFi.localIP().toString());
+    Serial.println(WiFi.softAPIP().toString());
+
+    for(int s=0; s <= max_connection; s++){
+      Serial.print(s);
+      Serial.print(F("\tHostname: ")); Serial.print(clients[s].myHostName);
+      Serial.print(F("\tIP Address: ")); Serial.println(clients[s].ipAddress);
+    }
+}
 
 #endif		// DIGITEMPSERVER_H
