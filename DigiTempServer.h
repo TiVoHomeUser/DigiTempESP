@@ -86,13 +86,15 @@ float  parser(const String* s, const char* key) {
     while (isspace(s->charAt(ptr)) && ptr < s->length()) {
       ptr++;
     } // ptr now at start of value or EOLN
-    int stptr = ptr;    // start of the value
+    unsigned int stptr = ptr;    // start of the value
 
     // find end of value
     while ((isdigit(s->charAt(ptr)) || s->charAt(ptr) == '.') && ptr < s->length()) {
       ptr++;
     }
-    retVal = s->substring(stptr, ptr).toFloat();
+    if(ptr > stptr){ 	// Not a number
+    	retVal = s->substring(stptr, ptr).toFloat();
+    }
   }
   return retVal;
 }
@@ -381,7 +383,8 @@ String SendHTML() {
 /* Just a little test message.  Go to http://192.168.4.1 in a web browser
    connected to this access point to see it.
 */
-void handleRoot() {
+void rootPage(){
+//void handleRoot() {
   if(DEBUG) Serial.println("Hello from handleRoot");
   Server.send(200, "text/html", SendHTML());
 	//Server.client().stop();
@@ -423,12 +426,7 @@ void updateStations() {
 }
 
 void setupServer() {
-  Server.on("/", handleRoot);
   Server.on("/stations", updateStations);
-  Server.on("/getData", send_getData);
-  Server.on("/start", startPage);   // Set NTP server trigger handler
-  //Server.begin();
-
   Serial.println("HTTP server started");
 }
 /*

@@ -4,24 +4,7 @@
 #define copyrite " &#169; Jan 2021 VictorWheeler myapps@vicw.net use, modify and distribute without restrictions"
 #define compiledate __DATE__
 
-#ifndef APSSID
-#define APSSID  "DigiTempESP"
-#define APPSK   "DigiTempPSK"
-#endif
-
-#if SERVER
-#define MY_HOSTNAME "DigiTemp-AP"          // Name for this client#define MY_HOSTNAME "DigiTemp-02"          // Name for this client
-#else
-#define MY_HOSTNAME "DigiTemp-04"          // Name for this client
-#endif
-
-
-#include <DHT.h>
-#define DHTPIN 4     	// what digital pin the DHT22 is conected to
-                     	// D4 = D2 om nodemcu D2 = D2 on D2 mini lite
-#define DHTTYPE DHT22   // there are multiple kinds of DHT sensors
-//#define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);
+#include "User_Settings.h"
 
 String hostName;		// Name for Server or Client
 
@@ -113,7 +96,8 @@ if(DEBUG && BiLED_DEBUG) Serial.flush();
 }
 /*
  *
- *                        loopDHT()
+ *                        		loopDHT()
+ *                     Update from the local sensor
  *
  *
  */
@@ -276,6 +260,12 @@ String getData() {
   return content;
 }
 
+/*
+ *
+ * 		send_getData()
+ * 		called to send the data collected from the sensor.
+ *
+ */
 void send_getData(){
 	Server.send(200, "text/html", getData());
 	//Server.client().stop();
@@ -283,20 +273,6 @@ void send_getData(){
 
 }
 
-/*
- *                          StartPage 
- * 
- */
-void startPage() {
-  if(DEBUG) Serial.println("Hello from startPage()");
-  // Retrieve the value of AutoConnectElement with arg function of WebServer class.
-  // Values are accessible with the element name.
-  // it redirects to the root page without the content response.
-  Server.sendHeader("Location", String("http://") + Server.client().localIP().toString() + String("/"));
-  Server.send(302, "text/plain", "");
-  Server.client().flush();
-  Server.client().stop();
-}
 
 /*
  *                    Page Not Found
@@ -311,6 +287,17 @@ void notFoundPage() {
 	Server.client().stop();
 }
 
+/*
+ *
+ * 			reboot()
+ * 			Force a device (Server or Client) to reboot
+ *
+ */
+void reboot(){
+	Server.send(102, "<!DOCTYPE html> <script language=\"JavaScript\" type=\"text/javascript\"> setTimeout(\"window.history.go(-1)\",10000); </script>"); // go back after 10 seconds 1000 = 1 second
+	ESP.restart();
+	// ESP.reset();
+}
 
 #if SERVER
 #include "digiTempServer.h"

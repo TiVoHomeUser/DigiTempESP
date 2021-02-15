@@ -101,13 +101,16 @@ void my_setup() {
 	Serial.println(hostName);
 	Serial.println(client_copyrite);
 	Serial.println(client_compiledate);
-	// Behavior a root path of ESP8266WebServer.
-	Server.on("/", rootPage);
-	Server.on("/start", startPage);   // Set NTP server trigger handler
-	Server.on("/getData", send_getData);  // Server read data and Keep Alive
 	Serial.println(Server.client().localIP().toString());
 }
 
+/*
+ *
+ * 				Kind of a watch-dog if this client has not been accessed in 300 seconds
+ * 				Re establish the connection.
+ *
+ *
+ */
 // int still_here defined and reset in getData()
 boolean still_alive(){
 	boolean retval = true;
@@ -127,7 +130,12 @@ void my_loop() {
 		Serial.println(F("*** Connection lost ***"));
 	}
 }
+
+/*
+ * 		Process any serial monitor input for this client
+ */
 void do_serial(char r){
+  if(r == '?') loopDHT();		// Need to do something with r may as well force update data
   Serial.print(hostName);
   Serial.print("\t");
   Serial.print(WiFi.localIP().toString());
