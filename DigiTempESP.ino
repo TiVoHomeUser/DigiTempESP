@@ -12,7 +12,7 @@
 #include "Arduino.h"
 
 // To build for Host set to true set to false for Client
-#define SERVER true		// server or client
+//#define SERVER true		// server or client
 
 
 #include "DigiTempESP.h"
@@ -22,9 +22,14 @@
 void setup(){
 	setupSerial();
 	setupBiLED();		// Built-in LED
-	setupDHT();     	//  DigiTemp setup sensor
-	my_setup();			// Either server or client setup()
+	setupDHT();     	// DigiTemp setup for the hardware sensor device
+	my_setup();			// Setup for either server or client
+
+	Server.on("/", rootPage);
+	Server.on("/getData", send_getData);  // Server read data and Keep Alive
+	Server.on("/reboot", reboot);
 	Server.onNotFound(notFoundPage);
+	// TODO /favicon.ico not found
 	Server.begin();
 }
 
@@ -37,14 +42,18 @@ void loop() {
 	}
 
 	if (Serial.available() > 0) {
+		Serial.println();
+		Serial.print(ESP.getChipId());
+		Serial.print(F(" Runnig as "));
     	#if SERVER
-			Serial.print("Host ");
+			Serial.println(F("Host "));
     	#else
-			Serial.print("Client ");
+			Serial.println(F("Client "));
     	#endif
       char r = Serial.read();
       do_serial(r);
 	} // Serial.avaiable()
+
 	my_loop();	// either Server or Client loop()
-	Server.handleClient();
+	Server.handleClient(); // Handle network requests
 }
