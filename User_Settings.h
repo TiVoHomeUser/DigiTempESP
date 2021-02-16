@@ -2,8 +2,8 @@
 #define User_Settings_ino "Feb 14, 2021"
 
 #ifndef APSSID
-#define APSSID	//"DigiTempESP"	// This WiFi Access Point name
-#define APPSK	//"DigiTempPSK"	// This WiFi AP password
+#define APSSID	"DigiTempESP"	// This WiFi Access Point name
+#define APPSK	"DigiTempPSK"	// This WiFi AP password
 #endif
 
 // To build for Host set to true set to false for Client
