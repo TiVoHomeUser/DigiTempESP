@@ -56,11 +56,21 @@ void onRemoveStation(WiFiEventSoftAPModeStationDisconnected sta_info) {
  *
  */
 void setupAP() {
+  Serial.print("Setting soft-AP configuration ... ");
+  Serial.println(WiFi.softAPConfig(local_IP, gateway, subnet) ? "Ready" : "Failed!");
+
+
   Serial.println("setupAP");
   Serial.print("\n\rDigiTemp AP max "); Serial.print(max_connection); Serial.println(" WiFi connections");
-  WiFi.softAP(ssid, password, channel, false, max_connection);
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.print("AP IP address: "); Serial.println(myIP);
+
+  Serial.print("Setting soft-AP ... ");
+  Serial.println(WiFi.softAP(ssid, password, channel, false, max_connection) ? "Ready" : "Failed!");
+  Serial.print("Soft-AP IP address = ");
+  Serial.println(WiFi.softAPIP());
+
+  //  WiFi.softAP(ssid, password, channel, false, max_connection);
+  //  IPAddress myIP = WiFi.softAPIP();
+  //  Serial.print("AP IP address: "); Serial.println(myIP);
 
   // Event subscription
   static WiFiEventHandler e1 = WiFi.onSoftAPModeStationConnected(onNewStation);
@@ -446,12 +456,12 @@ void  setupmDNS() {
 }
 
 void my_setup() {
-  hostName = MY_HOSTNAME;
-  Serial.print(F("Running as Host "));
-  Serial.println(hostName);
-  setupAP();
-  setupServer();
-  setupmDNS();
+	hostName = MY_HOSTNAME;
+	Serial.print(F("Running as Host "));
+	Serial.println(hostName);
+	setupAP();
+	setupServer();
+	setupmDNS();
 }
 
 

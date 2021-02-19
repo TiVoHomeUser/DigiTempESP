@@ -24,7 +24,6 @@ void setup(){
 	setupBiLED();		// Built-in LED
 	setupDHT();     	// DigiTemp setup for the hardware sensor device
 	my_setup();			// Setup for either server or client
-
 	Server.on("/", rootPage);
 	Server.on("/getData", send_getData);  // Server read data and Keep Alive
 	Server.on("/reboot", reboot);
@@ -53,7 +52,6 @@ void loop() {
       char r = Serial.read();
       do_serial(r);
 	} // Serial.avaiable()
-
 	my_loop();	// either Server or Client loop()
 	Server.handleClient(); // Handle network requests
 }

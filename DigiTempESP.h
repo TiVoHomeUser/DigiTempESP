@@ -20,6 +20,10 @@ unsigned int suid = ESP.getChipId();
 #include <WebServer.h>
 #endif
 
+IPAddress local_IP(192,168,40,1);
+IPAddress gateway(192,168,40,1);
+IPAddress subnet(255,255,255,0);
+
 // Server is used for both Server and Client
 #if defined(ARDUINO_ARCH_ESP8266)
 ESP8266WebServer Server;
