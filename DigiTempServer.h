@@ -115,8 +115,8 @@ Serial.print(F(" checkLocalStation() "));
   addss->Th_t.h = Th_t.h;
   addss->Th_t.f = Th_t.f;
   addss->Th_t.c = Th_t.c;
-  addss->Th_t.tmax = Th_t.tmax;
-  addss->Th_t.tmin = Th_t.tmin;
+  addss->Th_t.tmaxf = Th_t.tmaxf;
+  addss->Th_t.tminf = Th_t.tminf;
   addss->myHostName = hostName;
   return true;
 }
@@ -155,6 +155,7 @@ Serial.print(" Hello from checkStation ");
     return false;
   } else {
     Serial.println();
+    addss->isAlive = true;
   }
 
   client.print(String("GET ") + url + " HTTP/1.1\r\n" +
@@ -162,7 +163,7 @@ Serial.print(" Hello from checkStation ");
                "Connection: close\r\n" +
                "\r\n"
               );
-  delay(10);
+  delay(10); yield();
   int ptr;
   int eoln;
   float temp;
@@ -203,13 +204,13 @@ Serial.print(" Hello from checkStation ");
         ptr = line.indexOf("Temperature_Max:");
         if (ptr >= 0) {
           temp = parser(&line, "Temperature_Max:");
-          addss->Th_t.tmax = temp;
+          addss->Th_t.tmaxf = temp;
         }
 
         ptr = line.indexOf("Temperature_Min:");
         if (ptr >= 0) {
           temp = parser(&line, "Temperature_Min:");
-          addss->Th_t.tmin = temp;
+          addss->Th_t.tminf = temp;
         }
 
         // Hostname
@@ -258,8 +259,8 @@ void Load_Client_List(boolean reset) {
   while (station_list != NULL) {
     clients[ipidx].ipAddress = IPAddress((&station_list->ip)->addr);
     Serial.print(ipidx); Serial.print(":\t"); Serial.println(clients[ipidx].ipAddress.toString());
-    if(reset){ clients[ipidx].isAlive = true;}  // Default to active until get_Data() is verified
-if(reset){ Serial.print(ipidx); Serial.println(" = TRUE");}
+    if(newClient){ clients[ipidx].isAlive = true;}  // Default to active until get_Data() is verified
+//if(reset){ Serial.print(ipidx); Serial.println(" = TRUE");}
     station_list = STAILQ_NEXT(station_list, next);
     ipidx++;    // ipidx++; is not working use long-hand
   }
@@ -275,7 +276,7 @@ if(reset){ Serial.print(ipidx); Serial.println(" = TRUE");}
  */
 boolean read_Client(int Station_Number){
 	boolean retVal = false;
-	Load_Client_List(false);	// Some reason the clist is not loaded on new client so update clist each call
+	Load_Client_List(true);	// Some reason the clist is not loaded on new client so update clist each call
 
 // TODO remove after debug
 Serial.print(F("Read Client ")); Serial.print(Station_Number);
@@ -297,6 +298,7 @@ Serial.println(F(" is Not Alive "));
 for(int s=0; s <= max_connection; s++){
 	Serial.print(s);
 	Serial.print(F("\tHostname: ")); Serial.print(clients[s].myHostName);
+	if(clients[s].isAlive) Serial.print(F("\tAlive"));	else Serial.print(F("\tDead "));
 	Serial.print(F("\tIP Address: ")); Serial.print(clients[s].ipAddress);
 	Serial.print(F("\tLast read: ")); Serial.println(clients[s].last_check);
 }
@@ -332,7 +334,7 @@ String SendHTML() {
   ptr += "<script type=\"text/javascript\">setTimeout(\"location.reload()\", 45000);</script>\n";
   ptr += "</head>\n";
   ptr += "<body>\n";
-  ptr += "<h1>ESP8266 DigiTemp Server</h1>\n";
+  ptr += "<h1>ESP8266 DigiTemp Server <a href=toggle> {{S}} </a> </h1>\n";
   ptr += "<h3>Using Access Point(AP) Mode ";
   ptr += connections;
   ptr += " clients</h3>\n";
@@ -342,15 +344,19 @@ String SendHTML() {
   for (int ii = 0; ii  <= WiFi.softAPgetStationNum(); ii++) { //max_connection
     if (clients[ii].isAlive) {
       ptr += "<p>"; // if(0 != ii) ptr += "Connection: ";
-      ptr += clients[ii].myHostName;
-      ptr += "<br>";
       ptr += "<a href=//";
       ptr += clients[ii].ipAddress.toString();
       ptr += "/getData";
       ptr += ">";
-      ptr += clients[ii].ipAddress.toString();
-      ptr += "  {{HighLow}}  ";
+      if(clients[ii].myHostName.length() < 1) {
+    	  ptr += clients[ii].ipAddress.toString();
+      } else {
+    	  ptr += clients[ii].myHostName;
+      }
       ptr += "</a>";
+      ptr += "<br>";
+//if (clients[ii].isAlive) {
+      ptr += "  {{HighLow}}  ";
       //      if(clients[ii].ipAddress ==  WiFi.softAPIP()){
       //        checkLocalStation(&clients[ii]);
       //      } else {
@@ -361,28 +367,48 @@ String SendHTML() {
         if (isnan(clients[ii].Th_t.f)) {
           Serial.print(clients[ii].Th_t.f); Serial.println(" tempF is not a number");
         } else {
-          Serial.print(clients[ii].Th_t.f);
+        	if(scale){
+                Serial.print(dht.convertFtoC(clients[ii].Th_t.f));
+           	} else {
+        		Serial.print(clients[ii].Th_t.f);
+        	}
         }
         if (isnan(clients[ii].Th_t.h)) {
           Serial.println("humi is not a number");
         }
-        sprintf(tempFs, "%02.2f", clients[ii].Th_t.f);
-        sprintf(humis, "%02.1f", clients[ii].Th_t.h);
+        if(scale){
+        	sprintf(tempFs, "%02.2f", dht.convertFtoC(clients[ii].Th_t.f));
+        } else {
+        	sprintf(tempFs, "%02.2f", clients[ii].Th_t.f);
+        }
+    	sprintf(humis, "%02.1f", clients[ii].Th_t.h);
 
         ptr += "<a class=\"button button-off\" href=\"/stations\"> ";
         ptr += tempFs;
-        ptr += "F ";
+        if(scale){
+        	ptr += "C ";
+        } else {
+        	ptr += "F ";
+        }
         ptr += humis;
         ptr += "%</a>";
         char highlow[40];
-        sprintf(highlow, "High: %02.2fF\t\tLow: %02.2fF", clients[ii].Th_t.tmax, clients[ii].Th_t.tmin);
+        if(scale){
+        	sprintf(highlow, "High: %02.2fC\t\tLow: %02.2fC", dht.convertFtoC(clients[ii].Th_t.tmaxf), dht.convertFtoC(clients[ii].Th_t.tminf));
+        	ptr.replace("{{S}}", "C");
+        } else {
+        	sprintf(highlow, "High: %02.2fF\t\tLow: %02.2fF", clients[ii].Th_t.tmaxf, clients[ii].Th_t.tminf);
+        	ptr.replace("{{S}}", "F");
+        }
         ptr.replace("{{HighLow}}", String(highlow));
       }
-//      else {
+//    else {
 //        ptr += "<a class=\"button button-off\" href=\"/stations\">Off Line</a>";
 //        clients[ii].isAlive = false;
 //      }
   } // for WiFi.softAPgetStationNum
+
+
   ptr += "<h6>"; ptr += copyrite; ptr += " "; ptr += compiledate; ptr += "</h6>";
   ptr += "</body>\n";
   ptr += "</html>\n";
@@ -435,10 +461,47 @@ void updateStations() {
   //handleRoot();
 }
 
+/*
+ *
+ *
+ *
+ *
+ */
+//Server.on("/toggle", toggleCF);
+
+void toggleCF() { // toggle Temperature scale 'C' of 'F'
+	if (DEBUG) {
+		Serial.print("Hello from toggleCF Switching ");
+		if (scale) {
+			Serial.println("Celsius to Fahrenheit");
+		} else {
+			Serial.println("Fahrenheit to Celsius");
+		}
+	}
+
+	scale = !scale;
+
+	String content;
+	content += "<!DOCTYPE html> \n";
+	content += "<html>\n";
+	content += "<head>\n";
+	content +=
+			"<script> location.replace(\"http://{{DiGiTempServerIP}}/\") </script>\n";
+	content += "</head>\n";
+	content += "</html>\n ";
+
+	content.replace("{{DiGiTempServerIP}}", WiFi.softAPIP().toString());
+	Server.send(301, "text/html", content);
+	Server.client().flush();
+}
+
+
 void setupServer() {
+  Server.on("/toggle", toggleCF);
   Server.on("/stations", updateStations);
   Serial.println("HTTP server started");
 }
+
 /*
                                                             Setup mDNS responder
                     Allows this device to be found on local network by using {nyhostname}.local instead of IP address
@@ -476,7 +539,7 @@ void my_loop() {
   	  	  	  	  	// and needs to be called frequently
   if(newClient){
 	  if(DEBUG) Serial.println("There is a new client");
-	  Load_Client_List(true);
+	  Load_Client_List(false);
 	  newClient = false;
   }
   if(timeElapsed(minuteInterval/4)){

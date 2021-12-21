@@ -82,7 +82,11 @@ void rootPage() {
     sprintf(tempHumi,"Humidity: %02.1f%%\t\tTemperature: %02.2fC / %02.2fF\t\tHeat index: %04.2fC / %04.2fF",
     Th_t.h, Th_t.c, Th_t.f, Th_t.hic, Th_t.hif);
     content.replace("{{TempHumi}}", String(tempHumi));
-    sprintf(highlow, "High: %02.2fF\t\tLow: %02.2fF",Th_t.tmax,Th_t.tmin);
+    if(scale){
+        sprintf(highlow, "High: %02.2fC\t\tLow: %02.2fC",dht.convertFtoC(Th_t.tmaxf),dht.convertFtoC(Th_t.tminf));
+    } else {
+    	sprintf(highlow, "High: %02.2fF\t\tLow: %02.2fF",Th_t.tmaxf,Th_t.tminf);
+    }
     content.replace("{{HighLow}}", String(highlow));
    }
   content.replace("{{MyIP}}", String(WiFi.localIP().toString()));

@@ -54,15 +54,17 @@ void setupSerial(){
 	Serial.println(" Mode");
 }
 
-// storage for temperatue and Humidity
+// storage for temperature and Humidity
+
+//TODO use only a single scale 'C' or 'F' there is no need to save both there is a DHT function can convert
 typedef  struct Th_temp{
   float h = 0.0;
   float c = 0.0;
   float f = 0.0;
-  float hif = 0.0;
+  float hif = 0.0;		//Heat Index
   float hic = 0.0;
-  float tmax = -999.99;
-  float tmin = 999.99;
+  float tmaxf = -999.99;
+  float tminf = 999.99;
 } Th_temp;
 Th_temp Th_t;
 
@@ -78,6 +80,7 @@ void setupBiLED(){
 
 void setupDHT() {
   dht.begin(55);	// default 55usec
+  Serial.print("Using DHT"); Serial.println(DHTTYPE);
 }
 
 /*
@@ -139,11 +142,11 @@ void loopDHT() {
     	Th_t.hic = dht.computeHeatIndex(Th_t.c, Th_t.h, false);
 
     	// Track High / Low
-    	if (Th_t.f > Th_t.tmax) {
-    		Th_t.tmax = Th_t.f;
+    	if (Th_t.f > Th_t.tmaxf) {
+    		Th_t.tmaxf = Th_t.f;
     	}
-    	if (Th_t.f < Th_t.tmin) {
-    		Th_t.tmin = Th_t.f;
+    	if (Th_t.f < Th_t.tminf) {
+    		Th_t.tminf = Th_t.f;
     	}
     	loopCountDHT = 0;
 	} // loopCount = true
@@ -208,6 +211,7 @@ String getData() {
   content += "Temperature: {{TempC}} <br>\n";
   content += "Temperature_Max: {{TempMax}} <br>\n";
   content += "Temperature_Min: {{TempMin}} <br>\n";
+  content += " {{TempMaxC}} / {{TempMinC}} Centigrade<br>\n";
 
   //  content += "</p>\n";
   content += "Hostname: {{myHostName}}\n<br>\n";
@@ -220,15 +224,21 @@ String getData() {
   char tempF[20];
   char tempMax[20];
   char tempMin[20];
+  char tempMaxC[20];
+  char tempMinC[20];
   sprintf(tempC, "%02.2fC", Th_t.c);
   sprintf(tempF, "%04.2fF", Th_t.f);
   sprintf(humid, "%02.1f%%", Th_t.h);
-  sprintf(tempMax, "%04.2fF", Th_t.tmax);
-  sprintf(tempMin, "%04.2fF", Th_t.tmin);
+  sprintf(tempMax, "%04.2fF", Th_t.tmaxf);
+  sprintf(tempMin, "%04.2fF", Th_t.tminf);
+  sprintf(tempMinC, "%04.2f", dht.convertFtoC(Th_t.tminf));
+  sprintf(tempMaxC, "%04.2f", dht.convertFtoC(Th_t.tmaxf));
   content.replace("{{TempC}}", String(tempC));
   content.replace("{{TempF}}", String(tempF));
   content.replace("{{TempMax}}", String(tempMax));
   content.replace("{{TempMin}}", String(tempMin));
+  content.replace("{{TempMaxC}}", String(tempMaxC));
+  content.replace("{{TempMinC}}", String(tempMinC));
   content.replace("{{Humid}}", String(humid));
   content.replace("{{UID}}", SUID);
   content.replace("{{MyIP}}", Server.client().localIP().toString()); //String(WiFi.localIP().toString()));
@@ -298,7 +308,9 @@ void notFoundPage() {
  *
  */
 void reboot(){
-	Server.send(102, "<!DOCTYPE html> <script language=\"JavaScript\" type=\"text/javascript\"> setTimeout(\"window.history.go(-1)\",10000); </script>"); // go back after 10 seconds 1000 = 1 second
+	Serial.println("Reboot called");
+	Server.send(102, "<!DOCTYPE html> <body> <h1> REBOOT </h1> <script language=\"JavaScript\" type=\"text/javascript\"> setTimeout(\"window.history.go(-1)\",10000); </script></body></html>"); // go back after 10 seconds 1000 = 1 second
+	Server.client().flush();
 	ESP.restart();
 	// ESP.reset();
 }
