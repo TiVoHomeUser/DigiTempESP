@@ -1,6 +1,6 @@
 # DigiTempESP
 Monitor several ESP8266+DHT (DHT22, DHT11 ...) sensors from a single web page.
-This project is 2 parts a Host and Client the Host creates an access point and collects Temperature And Humidity from up to 7 clients displays the information in a single web page. The clients have a DHT22 or similar sensor attached is able to send the data to the host the host can have a sensor attached also.
+This project is 2 parts a Host and Client the Host creates an access point that collects Temperature And Humidity from up to 7 clients the host displays the collected information with a web page. The clients have a DHT22 or similar sensor attached the clients send the data to the host the host can double as a client when a sensor is attached.
 
  4 Sensors 
 ![Root Page](./DiGiTempESP.png)
